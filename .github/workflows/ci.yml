@@ -1,0 +1,51 @@
+name: testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ${{ matrix.so }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        so: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # O juiz tem duas partes. A CONTABILIDADE confere, depois de CADA operacao,
+      # que a memoria continua sendo uma fita de bytes: nenhum byte a mais,
+      # nenhum a menos, nenhum em dois lugares, e nenhum par de buracos grudados.
+      #
+      # E a ENUMERACAO explora todas as escolhas possiveis de buraco em sequencias
+      # minusculas. So com ela da para dizer que uma estrategia DESPERDICOU, em
+      # vez de dizer que ela desperdicou mais que a outra.
+      #
+      # Rodar em tres sistemas importa porque o gerador de sorteio e escrito aqui:
+      # se a sequencia de pedidos mudasse entre sistemas, "o pior encaixe recusou
+      # 442 pedidos" nao seria comparavel com nada.
+      - name: testes
+        run: dotnet test testes/Alocacao.Testes/Alocacao.Testes.csproj -c Release --nologo -v q
+
+      - name: o juiz, a melhor escolha possivel
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- juiz
+
+      # Com pedidos todos do mesmo tamanho ninguem fragmenta: o que separa as
+      # estrategias e a VARIACAO de tamanho.
+      - name: as quatro estrategias em quatro cargas
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- estrategias
+
+      # Sem juntar os buracos vizinhos nenhum byte some, e a memoria vira po.
+      - name: a juncao dos buracos vizinhos
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- juncao
+
+      - name: o sistema de companheiros e a fragmentacao interna
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- buddy
